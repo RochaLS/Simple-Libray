@@ -1,4 +1,5 @@
 let myLibrary = [];
+const localStorage = window.localStorage;
 const cardContainer = document.querySelector('.card-container');
 const addBookButton = document.getElementById('addBookButton');
 const titleTextField = document.getElementById('btitle');
@@ -13,9 +14,12 @@ function Book(title, author, pages, read) {
     this.read = read;
 }
 
+loadData();
+
 function addBookToLibrary(book) {
     myLibrary.push(book);
-    displayBooks()
+    saveToLocalStorage(myLibrary);
+    displayBooks();
 }
 
 function displayBooks() {
@@ -23,7 +27,7 @@ function displayBooks() {
     myLibrary.forEach(book => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.setAttribute('data-index', myLibrary.indexOf(book)) // Adding this to be able to identify each card (book)
+        card.setAttribute('data-index', myLibrary.indexOf(book)); // Adding this to be able to identify each card (book)
         const title = document.createElement('h3');
         title.textContent = `${book.title}`;
         const author = document.createElement('p');
@@ -35,8 +39,8 @@ function displayBooks() {
         const pages = document.createElement('p');
         pages.textContent = `Pages: ${book.pages}`;
         const removeButton = document.createElement('button');
-        removeButton.textContent = 'Remove'
-        removeButton.className = 'removeButton'
+        removeButton.textContent = 'Remove';
+        removeButton.className = 'removeButton';
 
         status.addEventListener('click', (element) => {
             const elementStyle = element.target.style;
@@ -53,13 +57,14 @@ function displayBooks() {
         // Removing card based on the on the index of the DOM element and the array
         removeButton.addEventListener('click', (element) => {
             const cardToRemove = element.target.parentNode;
-            myLibrary.splice(cardToRemove.dataset.index, 1)
+            myLibrary.splice(cardToRemove.dataset.index, 1);
+            localStorage.setItem('books', JSON.stringify(myLibrary));
             cardToRemove.remove();
         });
         
         let elements = [title, author, status, pages, removeButton];
         elements.forEach(element => {
-            card.appendChild(element)
+            card.appendChild(element);
         });
 
         cardContainer.appendChild(card);
@@ -79,7 +84,7 @@ function refresh() {
    const cards = document.querySelectorAll('.card'); 
 
    for (const card of cards) {
-       card.remove()
+       card.remove();
    }
 }
 
@@ -101,8 +106,44 @@ addBookButton.addEventListener('click', () => {
 });
 
 
-let book1 = new Book('The Hunger Games', 'Suzanne Collins', 203, true);
-let book2 = new Book('The Hunger Games: Catching Fire', 'Suzanne Collins', 203, false);
-let book3 = new Book('The Hunger Games: Mockingjay', 'Suzanne Collins', 203, false);
+// Check if local storage is available
 
-displayBooks()
+function storageAvailable(type) {
+    var storage;
+    try {
+        storage = window[type];
+        var x = '__storage_test__';
+        storage.setItem(x, x);
+        storage.removeItem(x);
+        return true;
+    }
+    catch(e) {
+        return e instanceof DOMException && (
+            // everything except Firefox
+            e.code === 22 ||
+            // Firefox
+            e.code === 1014 ||
+            // test name field too, because code might not be present
+            // everything except Firefox
+            e.name === 'QuotaExceededError' ||
+            // Firefox
+            e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+            // acknowledge QuotaExceededError only if there's something already stored
+            (storage && storage.length !== 0);
+    }
+}
+
+function saveToLocalStorage(data) {
+    if (storageAvailable('localStorage')) {
+        localStorage.setItem('books', JSON.stringify(data));
+    } else {
+        console.log("Failed to save book on Local Storage!")
+    }
+}
+
+function loadData() {
+    if (localStorage.length > 0 && storageAvailable('localStorage')) {
+         myLibrary = JSON.parse(localStorage.getItem('books'));
+    }
+    displayBooks()
+}
